@@ -24,122 +24,8 @@ Options:
 #
 
 from docopt import docopt
-from collections import defaultdict
-import hashlib
-import os
-import sys
 import time
-
-def backspace(length,clear=False):
-    print('\b' * length,end="",flush=True)
-    if clear:
-        print(' ' * length,end="",flush=True)
-        print('\b' * length,end="",flush=True)
-
-def chunk_reader(fobj, chunk_size=1024):
-    """Generator that reads a file in chunks of bytes"""
-    while True:
-        chunk = fobj.read(chunk_size)
-        if not chunk:
-            return
-        yield chunk
-
-
-def get_hash(filename, first_chunk_only=False, hash=hashlib.sha1):
-    hashobj = hash()
-    file_object = open(filename, 'rb')
-
-    if first_chunk_only:
-        hashobj.update(file_object.read(1024))
-    else:
-        for chunk in chunk_reader(file_object):
-            hashobj.update(chunk)
-    hashed = hashobj.digest()
-
-    file_object.close()
-    return hashed
-
-def check_for_duplicates(paths, hash=hashlib.sha1):
-    candidates = defaultdict(list) 
-    likely_candidates = defaultdict(list)
-    hashes_full = {} 
-
-    print(f"First pass ",end="[○○○○○○○○○○]",flush=True)
-    throbber = ['[◉○○○○○○○○○]','[○◉○○○○○○○○]','[○○◉○○○○○○○]','[○○○◉○○○○○○]','[○○○○◉○○○○○]','[○○○○○◉○○○○]','[○○○○○○◉○○○]','[○○○○○○○◉○○]','[○○○○○○○○◉○]','[○○○○○○○○○◉]']
-    throb_size = 12
-    tick = 0
-    tick_max = 9
-    for path in paths:
-        for root, dirs, filenames in os.walk(path):
-            for filename in filenames:
-                backspace(throb_size)
-                print(throbber[tick],end="",flush=True)
-                if tick == tick_max:
-                    tick = 0
-                else:
-                    tick += 1
-                try:
-                    real_path = os.path.realpath(os.path.join(root, filename))
-                    if "/dev/" in real_path:
-                        continue
-                    file_size = os.path.getsize(real_path)
-                    candidates[file_size].append(real_path)
-                except OSError:
-                    continue
-    backspace(throb_size,True)
-    print("Done.",flush=True)
-
-    print(f"Second pass ",end="[○○○○○○○○○○]",flush=True)
-    tick = 0
-    for size, files in candidates.items():
-        if len(files) < 2:
-            continue    
-
-        for filename in files:
-            backspace(throb_size)
-            print(throbber[tick],end="",flush=True)
-            if tick == tick_max:
-                tick = 0
-            else:
-                tick += 1
-            try:
-                quick_hash = get_hash(filename, first_chunk_only=True)
-                likely_candidates[(quick_hash, size)].append(filename)
-            except OSError:
-                continue
-    backspace(throb_size,True)
-    print("Done.",flush=True)
-
-    print(f"Final pass ",end="[○○○○○○○○○○]",flush=True)
-    tick = 0
-    retlist = []
-    detected = []
-    for __, files_list in likely_candidates.items():
-        if len(files_list) < 2:
-            continue    
-
-        for filename in files_list:
-            backspace(throb_size)
-            print(throbber[tick],end="",flush=True)
-            if tick == tick_max:
-                tick = 0
-            else:
-                tick += 1
-            try: 
-                full_hash = get_hash(filename, first_chunk_only=False)
-                duplicate = hashes_full.get(full_hash)
-                if duplicate and duplicate not in detected:
-                    if filename.strip() == duplicate.strip():
-                        continue
-                    detected.append(filename)
-                    retlist.append((filename, duplicate))
-                else:
-                    hashes_full[full_hash] = filename
-            except OSError:
-                continue
-    backspace(throb_size,True)
-    print("Done.",flush=True)
-    return retlist
+from dupe_detect import DupeDetector
 
 def print_to_screen(duplicates):
     for dupe in duplicates:
@@ -155,20 +41,21 @@ def save(duplicates,filepath):
 
 def main(args):
     start_time = time.time()
-    duplicates = check_for_duplicates(args['SCAN-DIR'])
-    if duplicates:
+    detector = DupeDetector(args['SCAN-DIR'])
+    detector.scan()
+    if len(detector):
         print("Duplicates found!",flush=True)
         if args['--output']:
             print(f"Saving output to {args['--output']}",end="...",flush=True)
             try:
-                save(duplicates,args['--output'])
+                save(detector.duplicates,args['--output'])
                 print(f"Done.",flush=True)
             except IOError:
                 print("Failed! Do you have the right permissions?",flush=True)
                 print("Falling back...",flush=True)
-                print_to_screen(duplicates)
+                print_to_screen(detector.duplicates)
         else:
-            print_to_screen(duplicates)
+            print_to_screen(detector.duplicates)
     print(f"Operation completed in {round(time.time() - start_time,2)} seconds.")
 
 if __name__ == "__main__":
