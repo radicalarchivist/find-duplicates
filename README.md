@@ -25,7 +25,7 @@ v.0.1
 Scan a single directory for duplicates
 
     # *nix/Mac
-    $ find-duplicates /home/user/Videos
+    $ ./find-duplicates /home/user/Videos
 
     # Windows
     C:\find-duplicates path> C:\Path\to\Python.exe find-duplicates C:\home\user\Videos
@@ -33,7 +33,7 @@ Scan a single directory for duplicates
 Scan multiple directories for duplicates and send output to a .csv file
 
     # *nix/Mac
-    $ find-duplicates -o duplicates.csv /home/user/Videos /home/user/Pictures/gifs
+    $ ./find-duplicates -o duplicates.csv /home/user/Videos /home/user/Pictures/gifs
 
     # Windows
     C:\find-duplicates path> C:\Path\to\Python.exe find-duplicates -o duplicates.csv C:\home\user\Videos C:\home\user\Pictures\gifs
@@ -41,7 +41,7 @@ Scan multiple directories for duplicates and send output to a .csv file
 Scan multiple directories for duplicates and send output to a .csv file excluding .db and .ini files
 
     # *nix/Mac
-    $ find-duplicates -x db,ini -o duplicates.csv /home/user/Videos /home/user/Pictures/gifs
+    $ ./find-duplicates -x db,ini -o duplicates.csv /home/user/Videos /home/user/Pictures/gifs
 
     # Windows
     C:\find-duplicates path> C:\Path\to\Python.exe find-duplicates -x db,ini -o duplicates.csv C:\home\user\Videos C:\home\user\Pictures\gifs
