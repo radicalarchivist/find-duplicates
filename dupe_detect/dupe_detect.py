@@ -4,9 +4,17 @@ import os
 from .throbber import Throbber
 
 class DupeDetector:
-    def __init__(self, paths):
+    def __init__(self, paths, ext_excludes, dir_excludes):
         self.paths = paths
         self.duplicates = []
+        if not ext_excludes:
+            self.ext_excludes = []
+        else:
+            self.ext_excludes = ext_excludes
+        if not dir_excludes:
+            self.dir_excludes = dir_excludes
+        else:
+            self.dir_excludes = dir_excludes
 
     def __len__(self):
         return len(self.duplicates)
@@ -59,7 +67,11 @@ class DupeDetector:
         for path in self.paths:
             for root, dirs, filenames in os.walk(path):
                 for filename in filenames:
+                    self.delete_last_line()
                     print(f"First pass ",end=str(throbber),flush=True)
+                    _, ext = os.path.splitext(filename)
+                    if ext[1:].lower() in self.ext_excludes:
+                        continue
                     try:
                         real_path = os.path.realpath(os.path.join(root, filename))
                         if "/dev/" in real_path:
@@ -69,7 +81,7 @@ class DupeDetector:
                     except OSError:
                         continue
                     throbber.tick()
-                    self.delete_last_line()
+        self.delete_last_line()
         print(f"First pass complete,",flush=True)
 
         throbber.reset()
@@ -83,6 +95,7 @@ class DupeDetector:
                     quick_hash = self.get_hash(filename, first_chunk_only=True)
                     likely_candidates[(quick_hash, size)].append(filename)
                 except OSError:
+                    self.delete_last_line()
                     continue
                 throbber.tick()
                 self.delete_last_line()
@@ -102,12 +115,14 @@ class DupeDetector:
                     duplicate = hashes_full.get(full_hash)
                     if duplicate and duplicate not in detected:
                         if filename.strip() == duplicate.strip():
+                            self.delete_last_line()
                             continue
                         detected.append(filename)
                         retlist.append((filename, duplicate))
                     else:
                         hashes_full[full_hash] = filename
                 except OSError:
+                    self.delete_last_line()
                     continue
                 throbber.tick()
                 self.delete_last_line()

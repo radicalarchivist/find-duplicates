@@ -6,13 +6,16 @@ v.0.1
 2020 by radicalarchivist
 
 Usage:
+  find-duplicates SCAN-DIR...
   find-duplicates [-o OUTPUT-FILE] SCAN-DIR...
+  find-duplicates [-o OUTPUT-FILE] [-x EXTS] SCAN-DIR...
   find-duplicates --help
   find-duplicates --version
 
 Options:
   SCAN-DIR                              Directory to be scanned
   -o --output OUTPUT-FILE               Send output to a csv file
+  -x --exclude-extentions EXTS          List of extensions to exclude
   -h --help                             Show this screen
   --version                             Show version info
 
@@ -21,6 +24,9 @@ Options:
 #
 # TODO:
 #
+# [ ] gui
+# [X] exclude extensions
+# [ ] exclude directories
 #
 
 from docopt import docopt
@@ -41,7 +47,7 @@ def save(duplicates,filepath):
 
 def main(args):
     start_time = time.time()
-    detector = DupeDetector(args['SCAN-DIR'])
+    detector = DupeDetector(args['SCAN-DIR'],args['--exclude-extentions'],False)
     detector.scan()
     if len(detector):
         print("Duplicates found!",flush=True)
@@ -56,6 +62,8 @@ def main(args):
                 print_to_screen(detector.duplicates)
         else:
             print_to_screen(detector.duplicates)
+    else:
+        print("No duplicates found.",flush=True)    
     print(f"Operation completed in {round(time.time() - start_time,2)} seconds.")
 
 if __name__ == "__main__":
